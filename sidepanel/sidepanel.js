@@ -162,11 +162,16 @@ async function checkFluxxConnectionWithRetry(retries = 3, delay = 1000) {
   return false;
 }
 
+// Check if URL is a Fluxx site
+function isFluxxSite(url) {
+  return url?.includes('fluxxlabs.com') || url?.includes('fluxx.io');
+}
+
 async function checkFluxxConnection() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    if (!tab || !tab.url || !tab.url.includes('fluxxlabs.com')) {
+    if (!tab || !tab.url || !isFluxxSite(tab.url)) {
       setDisconnected('Not on Fluxx');
       return false;
     }
