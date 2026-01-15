@@ -13,7 +13,8 @@
   ],
 
   "host_permissions": [
-    "https://*.fluxxlabs.com/*"
+    "https://*.fluxxlabs.com/*",
+    "https://*.fluxx.io/*"
   ],
 
   "side_panel": {
@@ -27,7 +28,7 @@
 
   "content_scripts": [
     {
-      "matches": ["https://*.fluxxlabs.com/*"],
+      "matches": ["https://*.fluxxlabs.com/*", "https://*.fluxx.io/*"],
       "js": ["content/fluxx-bridge.js"],
       "css": ["content/fluxx-bridge.css"],
       "run_at": "document_idle"
