@@ -1,0 +1,20 @@
+# Backend (hosted separately)
+backend/
+
+# Dev files
+node_modules/
+.env
+*.env
+lib/
+generate-icons.js
+test_form.pdf
+first_launch.md
+TRANSITION.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "Fluxx AI Form Editor",
+  "version": "1.0.0",
+  "description": "Edit Fluxx forms using natural language and Claude AI",
+
+  "permissions": [
+    "activeTab",
+    "storage",
+    "sidePanel",
+    "scripting",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "https://*.fluxxlabs.com/*"
+  ],
+
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://*.fluxxlabs.com/*"],
+      "js": ["content/fluxx-bridge.js"],
+      "css": ["content/fluxx-bridge.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_title": "Open Fluxx AI",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
