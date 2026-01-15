@@ -461,34 +461,13 @@ async function applyAndUpload(operations, exportData) {
     importBtn.click();
     await sleep(800);
 
-    // Step 2: Find and click the "Select file to import" link
-    const uploadLink = await waitForElement('a.upload-file[title="Import Stencil"], a.upload-file', 5000);
+    // Step 2: Find the "Select file to import" link (must have correct title)
+    const uploadLink = await waitForElement('a.upload-file[title="Import Stencil"]', 5000);
     if (!uploadLink) {
-      throw new Error('Upload link not found in import modal');
+      throw new Error('Upload link not found in import panel');
     }
 
-    // Step 3: Find the hidden file input created by Plupload
-    let fileInput = document.querySelector('input[type="file"][id^="html5_"]') ||
-                    document.querySelector('input[type="file"].plupload') ||
-                    document.querySelector('input[type="file"]');
-
-    // If no file input exists yet, trigger Plupload to create it
-    if (!fileInput) {
-      uploadLink.click();
-      await sleep(500);
-      fileInput = document.querySelector('input[type="file"]');
-    }
-
-    if (!fileInput) {
-      // Fallback: Use the direct API endpoint from the upload link
-      const importUrl = uploadLink.getAttribute('href');
-      if (importUrl) {
-        await uploadViaAPI(modified, importUrl);
-        return;
-      }
-      throw new Error('Could not find file input or import URL');
-    }
-
+    console.log('[Fluxx AI] Found upload link:', uploadLink.id);
     updateLoadingText('Uploading changes...');
 
     // Step 4: Create a File from our modified JSON
@@ -496,13 +475,64 @@ async function applyAndUpload(operations, exportData) {
     const blob = new Blob([jsonString], { type: 'application/json' });
     const file = new File([blob], 'fluxx_import.json', { type: 'application/json' });
 
-    // Step 5: Set the file on the input
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    fileInput.files = dataTransfer.files;
+    // Step 5: Find the file input that handles JSON/text imports
+    // On fluxx.io, Plupload uses shared file inputs - we need the one that accepts text/plain
+    const allInputs = document.querySelectorAll('input[type="file"]');
+    const textInputs = Array.from(allInputs).filter(inp => {
+      const accept = inp.getAttribute('accept') || inp.getAttribute('accept_donotuse') || '';
+      return accept.includes('text/plain') || accept.includes('application/json');
+    });
 
-    // Trigger change event to start upload
-    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+    // Use the last text input (most recently created, for the import modal)
+    let fileInput = textInputs[textInputs.length - 1];
+
+    // Fallback: if no text inputs, try to find by Plupload instance on upload link (fluxxlabs.com style)
+    if (!fileInput) {
+      const pluploadKey = Object.keys(uploadLink).find(k => k.startsWith('Plupload_'));
+      if (pluploadKey) {
+        const uploader = uploadLink[pluploadKey];
+        console.log('[Fluxx AI] Found Plupload instance:', pluploadKey);
+
+        // Use Plupload's addFile API directly
+        await new Promise((resolve, reject) => {
+          const onComplete = () => {
+            console.log('[Fluxx AI] Upload complete via Plupload API');
+            uploader.unbind('UploadComplete', onComplete);
+            uploader.unbind('Error', onError);
+            resolve();
+          };
+          const onError = (up, err) => {
+            console.error('[Fluxx AI] Plupload error:', err);
+            uploader.unbind('UploadComplete', onComplete);
+            uploader.unbind('Error', onError);
+            reject(new Error(err.message || 'Upload failed'));
+          };
+          uploader.bind('UploadComplete', onComplete);
+          uploader.bind('Error', onError);
+          uploader.addFile(file);
+          uploader.start();
+        });
+
+        // Skip the file input approach since we used Plupload API
+        fileInput = null;
+      }
+    }
+
+    if (!fileInput && textInputs.length === 0) {
+      throw new Error('Could not find import file input. Try refreshing the page.');
+    }
+
+    if (fileInput) {
+      console.log('[Fluxx AI] Using file input:', fileInput.id);
+
+      // Set the file on the input
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      fileInput.files = dataTransfer.files;
+
+      // Dispatch change event to trigger Plupload
+      fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
 
     updateLoadingText('Processing import...');
     await sleep(2000);
