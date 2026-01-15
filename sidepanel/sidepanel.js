@@ -210,6 +210,9 @@ async function checkFluxxConnection() {
 }
 
 function setConnected(exportData, themeNameFromUI = null, modelNameFromUI = null) {
+  // Clear loading state
+  setFormInfoLoading(false);
+
   // Get current form ID before updating state
   const oldFormId = getFormId();
 
@@ -256,6 +259,9 @@ function setConnected(exportData, themeNameFromUI = null, modelNameFromUI = null
 }
 
 function setDisconnected(reason) {
+  // Clear loading state
+  setFormInfoLoading(false);
+
   state.connected = false;
   state.currentExport = null;
   state.themeNameFromUI = null;
@@ -297,6 +303,8 @@ function handleMessage(message) {
     case 'FLUXX_STATE_CHANGED':
       if (message.isOnFormEditor) {
         state.currentExport = null;
+        // Show loading state while fetching new export
+        setFormInfoLoading(true);
         checkFluxxConnection();
       } else {
         setDisconnected('Open a form theme');
@@ -635,6 +643,15 @@ function setLoading(loading) {
 
   elements.sendBtn.querySelector('.btn-text').style.display = loading ? 'none' : 'inline';
   elements.sendBtn.querySelector('.btn-loading').style.display = loading ? 'inline-flex' : 'none';
+}
+
+// Form Info Loading State (when switching forms)
+function setFormInfoLoading(loading) {
+  if (loading) {
+    elements.formInfo.classList.add('loading');
+  } else {
+    elements.formInfo.classList.remove('loading');
+  }
 }
 
 // Start

@@ -120,6 +120,20 @@ body {
   font-weight: 500;
 }
 
+/* Form info loading state */
+.form-info.loading .meta-value {
+  color: #999;
+}
+
+.form-info.loading .form-meta {
+  opacity: 0.6;
+}
+
+.form-info.loading #refreshBtn {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 /* Messages */
 .messages {
   flex: 1;

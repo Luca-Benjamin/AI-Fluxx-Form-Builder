@@ -70,6 +70,32 @@ function init() {
       return;
     }
 
+    // Check if clicked on a model category header (li.list-label) - e.g., "Grant Request"
+    // Apply same logic as model theme clicks below
+    const categoryLabel = e.target.closest('li.list-label');
+    if (categoryLabel) {
+      // Clear export immediately since we're switching
+      currentExport = null;
+      notifyExtension();
+
+      // Wait for Fluxx to expand the category and select a theme, then detect
+      setTimeout(() => {
+        // Find the globally selected stencil entry (Fluxx will have updated this)
+        const selectedEntry = document.querySelector('li.icon.selected li.active.entry.selected') ||
+                             document.querySelector('li.icon.selected li.active.entry');
+        if (selectedEntry && selectedEntry.dataset.modelId) {
+          const newStencilId = selectedEntry.dataset.modelId;
+          if (newStencilId !== currentStencilId) {
+            currentStencilId = newStencilId;
+            currentExport = null;
+          }
+        }
+        detectFormEditor();
+        notifyExtension();
+      }, 1000);
+      return;
+    }
+
     // Check if clicked on a model/theme header (li.icon)
     const modelItem = e.target.closest('li.icon:not(.new-theme):not(.retired-themes):not(.export-view):not(.filter-view):not(.viz-view)');
     if (modelItem && !themeEntry) {
@@ -140,9 +166,10 @@ function getStencilIdFromLink(exportLink) {
   return match ? match[1] : null;
 }
 
-// Get theme name from the sidebar by finding the stencil entry and traversing up to its parent model
+// Get theme name from the sidebar (e.g., "R3.1: Impactful AI")
+// This is the Model Theme name (same as getModelNameFromUI)
 function getThemeNameFromUI(stencilId) {
-  // Method 1 (PRIORITY): Find stencil entry by ID and get parent model's label
+  // Method 1: Find stencil entry by ID and get its parent model theme's label
   if (stencilId) {
     const selectors = [
       `li.active.entry[data-model-id="${stencilId}"]`,
@@ -150,25 +177,23 @@ function getThemeNameFromUI(stencilId) {
       `li[data-model-id="${stencilId}"]`
     ];
 
-    let stencilEntry = null;
     for (const selector of selectors) {
-      stencilEntry = document.querySelector(selector);
-      if (stencilEntry) break;
-    }
-
-    if (stencilEntry) {
-      const parentModel = stencilEntry.closest('li.icon');
-      if (parentModel) {
-        const modelLabel = parentModel.querySelector('a.link span.label');
-        if (modelLabel) {
-          return modelLabel.textContent?.trim();
+      const stencilEntry = document.querySelector(selector);
+      if (stencilEntry) {
+        const parentModel = stencilEntry.closest('li.icon');
+        if (parentModel) {
+          const modelLabel = parentModel.querySelector('a.link span.label');
+          if (modelLabel) {
+            const themeName = modelLabel.textContent?.trim();
+            console.log('[Fluxx AI] Theme name from parent li.icon:', themeName);
+            return themeName;
+          }
         }
       }
     }
   }
 
-  // Method 2: Find the selected model that contains a selected entry
-  // (This avoids picking up selected models from other model types)
+  // Method 2: Find the selected model theme that contains a selected entry
   const allSelectedModels = document.querySelectorAll('li.icon.selected');
   for (const model of allSelectedModels) {
     const hasSelectedEntry = model.querySelector('li.active.entry.selected');
@@ -176,7 +201,7 @@ function getThemeNameFromUI(stencilId) {
       const modelLabel = model.querySelector('a.link span.label');
       if (modelLabel) {
         const themeName = modelLabel.textContent?.trim();
-        console.log('[Fluxx AI] Theme name from selected model with entry:', themeName);
+        console.log('[Fluxx AI] Theme name from selected li.icon with entry:', themeName);
         return themeName;
       }
     }
@@ -186,7 +211,7 @@ function getThemeNameFromUI(stencilId) {
   const selectedModel = document.querySelector('li.icon.selected a.link span.label');
   if (selectedModel) {
     const themeName = selectedModel.textContent?.trim();
-    console.log('[Fluxx AI] Theme name from first selected model (fallback):', themeName);
+    console.log('[Fluxx AI] Theme name from first selected li.icon (fallback):', themeName);
     return themeName;
   }
 
@@ -194,9 +219,10 @@ function getThemeNameFromUI(stencilId) {
   return null;
 }
 
-// Get model name from the sidebar - look at the dock section header
+// Get model category name from the sidebar (e.g., "Grant Request", "Funding Source")
+// This is the top-level category that contains model themes
 function getModelNameFromUI(stencilId) {
-  // Method 1: Find stencil entry and get its containing dock section
+  // Method 1: Find stencil entry by ID and traverse up to the category header
   if (stencilId) {
     const selectors = [
       `li.active.entry[data-model-id="${stencilId}"]`,
@@ -204,35 +230,17 @@ function getModelNameFromUI(stencilId) {
       `li[data-model-id="${stencilId}"]`
     ];
 
-    let stencilEntry = null;
     for (const selector of selectors) {
-      stencilEntry = document.querySelector(selector);
-      if (stencilEntry) break;
-    }
-
-    if (stencilEntry) {
-      // Find the dock section that contains this entry
-      const dockSection = stencilEntry.closest('div.dock-section, section.dock-section, .dock-section');
-      if (dockSection) {
-        // Look for section header with the model name
-        const sectionHeader = dockSection.querySelector('.dock-section-header h3, .dock-section-header span, h3, header span');
-        if (sectionHeader) {
-          const modelName = sectionHeader.textContent?.trim();
-          if (modelName) {
-            console.log('[Fluxx AI] Model name from dock section:', modelName);
-            return modelName;
-          }
-        }
-      }
-
-      // Alternative: Find the closest dock panel/card and get its title
-      const dockPanel = stencilEntry.closest('.dock-panel, .panel, .card');
-      if (dockPanel) {
-        const panelTitle = dockPanel.querySelector('.title, .panel-title, h2, h3');
-        if (panelTitle) {
-          const modelName = panelTitle.textContent?.trim();
-          if (modelName) {
-            console.log('[Fluxx AI] Model name from dock panel:', modelName);
+      const stencilEntry = document.querySelector(selector);
+      if (stencilEntry) {
+        // Go up to the parent ul (model category container)
+        const categoryList = stencilEntry.closest('ul.toggle-class, ul[id]');
+        if (categoryList) {
+          // Find the list-label with the category name
+          const listLabel = categoryList.querySelector('li.list-label div.link');
+          if (listLabel) {
+            const modelName = listLabel.textContent?.trim();
+            console.log('[Fluxx AI] Model name from category header:', modelName);
             return modelName;
           }
         }
@@ -240,30 +248,32 @@ function getModelNameFromUI(stencilId) {
     }
   }
 
-  // Method 2: Look for selected dock section header
-  const selectedSection = document.querySelector('.dock-section.selected, .dock-section.active');
-  if (selectedSection) {
-    const header = selectedSection.querySelector('h3, .dock-section-header');
-    if (header) {
-      const modelName = header.textContent?.trim();
-      if (modelName) {
-        console.log('[Fluxx AI] Model name from selected section:', modelName);
+  // Method 2: Find selected model theme and get its category
+  const selectedIcon = document.querySelector('li.icon.selected');
+  if (selectedIcon) {
+    const categoryList = selectedIcon.closest('ul.toggle-class, ul[id]');
+    if (categoryList) {
+      const listLabel = categoryList.querySelector('li.list-label div.link');
+      if (listLabel) {
+        const modelName = listLabel.textContent?.trim();
+        console.log('[Fluxx AI] Model name from selected icon category:', modelName);
         return modelName;
       }
     }
   }
 
-  // Method 3: Look for breadcrumb or page header with model info
-  const breadcrumb = document.querySelector('.breadcrumb .current, .page-header h1, .admin-header h1');
-  if (breadcrumb) {
-    const text = breadcrumb.textContent?.trim();
-    if (text && !text.includes('Form Builder')) {
-      console.log('[Fluxx AI] Model name from breadcrumb:', text);
-      return text;
+  // Method 3: Fallback - find any open category with a selected entry
+  const openCategory = document.querySelector('ul.toggle-class.open');
+  if (openCategory) {
+    const listLabel = openCategory.querySelector('li.list-label div.link');
+    if (listLabel) {
+      const modelName = listLabel.textContent?.trim();
+      console.log('[Fluxx AI] Model name from open category (fallback):', modelName);
+      return modelName;
     }
   }
 
-  console.log('[Fluxx AI] Could not find model name from UI for stencil', stencilId);
+  console.log('[Fluxx AI] Could not find model name for stencil', stencilId);
   return null;
 }
 
