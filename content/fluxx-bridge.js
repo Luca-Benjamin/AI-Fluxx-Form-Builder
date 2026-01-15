@@ -180,6 +180,18 @@ function getThemeNameFromUI(stencilId) {
     for (const selector of selectors) {
       const stencilEntry = document.querySelector(selector);
       if (stencilEntry) {
+        // EXCEPTION: Generic Template has no model themes, just "All Templates"
+        // For Generic Template, the theme IS the stencil entry label
+        const parentCategory = stencilEntry.closest('ul#generic_template');
+        if (parentCategory) {
+          const entryLabel = stencilEntry.querySelector('div.label, .label');
+          if (entryLabel) {
+            const themeName = entryLabel.textContent?.trim();
+            console.log('[Fluxx AI] Theme name from Generic Template entry:', themeName);
+            return themeName;
+          }
+        }
+
         const parentModel = stencilEntry.closest('li.icon');
         if (parentModel) {
           const modelLabel = parentModel.querySelector('a.link span.label');
@@ -196,8 +208,19 @@ function getThemeNameFromUI(stencilId) {
   // Method 2: Find the selected model theme that contains a selected entry
   const allSelectedModels = document.querySelectorAll('li.icon.selected');
   for (const model of allSelectedModels) {
-    const hasSelectedEntry = model.querySelector('li.active.entry.selected');
-    if (hasSelectedEntry) {
+    const selectedEntry = model.querySelector('li.active.entry.selected, li.entry.selected');
+    if (selectedEntry) {
+      // EXCEPTION: Generic Template - use entry label, not model label
+      const parentCategory = model.closest('ul#generic_template');
+      if (parentCategory) {
+        const entryLabel = selectedEntry.querySelector('div.label, .label');
+        if (entryLabel) {
+          const themeName = entryLabel.textContent?.trim();
+          console.log('[Fluxx AI] Theme name from Generic Template selected entry:', themeName);
+          return themeName;
+        }
+      }
+
       const modelLabel = model.querySelector('a.link span.label');
       if (modelLabel) {
         const themeName = modelLabel.textContent?.trim();
@@ -207,8 +230,8 @@ function getThemeNameFromUI(stencilId) {
     }
   }
 
-  // Method 3: Fallback - just get first selected model's label
-  const selectedModel = document.querySelector('li.icon.selected a.link span.label');
+  // Method 3: Fallback - just get first selected model's label (skip for Generic Template)
+  const selectedModel = document.querySelector('li.icon.selected:not(ul#generic_template li.icon) a.link span.label');
   if (selectedModel) {
     const themeName = selectedModel.textContent?.trim();
     console.log('[Fluxx AI] Theme name from first selected li.icon (fallback):', themeName);
@@ -378,11 +401,27 @@ function showLoadingOverlay(message = 'Applying changes...') {
   // Remove existing overlay if any
   hideLoadingOverlay();
 
+  // Get the extension's logo URL
+  const logoUrl = chrome.runtime.getURL('icons/fluxx_logo.jfif');
+
   const overlay = document.createElement('div');
   overlay.id = 'fluxx-ai-loading-overlay';
   overlay.innerHTML = `
     <div class="fluxx-ai-loading-content">
-      <div class="fluxx-ai-spinner"></div>
+      <div class="fluxx-ai-animation">
+        <img src="${logoUrl}" class="fluxx-ai-logo" alt="Fluxx AI">
+        <svg class="fluxx-ai-wand" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M52 4L48 12L40 8L44 16L36 20L44 24L40 32L48 28L52 36L56 28L64 32L60 24L68 20L60 16L64 8L56 12L52 4Z" fill="#FFD700" class="wand-star"/>
+          <rect x="8" y="44" width="32" height="6" rx="2" transform="rotate(-45 8 44)" fill="#8B4513"/>
+          <rect x="6" y="42" width="8" height="10" rx="2" transform="rotate(-45 6 42)" fill="#FFD700"/>
+        </svg>
+        <div class="fluxx-ai-sparkles">
+          <span class="sparkle s1">✦</span>
+          <span class="sparkle s2">✧</span>
+          <span class="sparkle s3">✦</span>
+          <span class="sparkle s4">✧</span>
+        </div>
+      </div>
       <div class="fluxx-ai-loading-text">${message}</div>
     </div>
   `;
@@ -398,7 +437,7 @@ function showLoadingOverlay(message = 'Applying changes...') {
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -407,26 +446,70 @@ function showLoadingOverlay(message = 'Applying changes...') {
     .fluxx-ai-loading-content {
       background: white;
       padding: 40px 60px;
-      border-radius: 12px;
+      border-radius: 16px;
       text-align: center;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
-    .fluxx-ai-spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid #e0e0e0;
-      border-top-color: #c43331;
-      border-radius: 50%;
-      animation: fluxx-ai-spin 1s linear infinite;
-      margin: 0 auto 20px;
+    .fluxx-ai-animation {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 24px;
     }
+    .fluxx-ai-logo {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      position: absolute;
+      left: 50%;
+      top: 55%;
+      transform: translate(-50%, -50%);
+      border-radius: 12px;
+    }
+    .fluxx-ai-wand {
+      width: 44px;
+      height: 44px;
+      position: absolute;
+      left: 50%;
+      top: -5px;
+      transform: translateX(-50%);
+      animation: fluxx-ai-wand-wave 1s ease-in-out infinite;
+      transform-origin: center bottom;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+    .fluxx-ai-sparkles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+    .sparkle {
+      position: absolute;
+      font-size: 14px;
+      color: #FFD700;
+      animation: fluxx-ai-sparkle 1.5s ease-in-out infinite;
+      opacity: 0;
+      text-shadow: 0 0 4px #FFD700;
+    }
+    .sparkle.s1 { top: 8px; left: 15px; animation-delay: 0s; }
+    .sparkle.s2 { top: 8px; right: 15px; animation-delay: 0.4s; }
+    .sparkle.s3 { top: 20px; left: 5px; animation-delay: 0.8s; }
+    .sparkle.s4 { top: 20px; right: 5px; animation-delay: 1.2s; }
     .fluxx-ai-loading-text {
       font-size: 18px;
       color: #333;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 500;
     }
-    @keyframes fluxx-ai-spin {
-      to { transform: rotate(360deg); }
+    @keyframes fluxx-ai-wand-wave {
+      0%, 100% { transform: translateX(-50%) rotate(-15deg); }
+      50% { transform: translateX(-50%) rotate(15deg); }
+    }
+    @keyframes fluxx-ai-sparkle {
+      0%, 100% { opacity: 0; transform: scale(0.5); }
+      50% { opacity: 1; transform: scale(1.3); }
     }
     /* Hide Fluxx modals during AI import */
     body.fluxx-ai-importing .reveal-modal,
@@ -967,11 +1050,19 @@ function applyOperations(exportData, operations) {
               elements.push(newElement);
             }
           }
-        } else if (op.position === 'inside') {
+        } else if (op.position === 'inside' || op.position === 'inside_end') {
+          // Add to END of group's children
           const target = findElementByUid(elements, targetUid);
           if (target) {
             target.elements = target.elements || [];
             target.elements.push(newElement);
+          }
+        } else if (op.position === 'inside_start' || op.position === 'inside_top') {
+          // Add to START of group's children (top of group)
+          const target = findElementByUid(elements, targetUid);
+          if (target) {
+            target.elements = target.elements || [];
+            target.elements.unshift(newElement);
           }
         } else {
           const result = findParentOf(elements, targetUid);
@@ -1080,11 +1171,19 @@ function applyOperations(exportData, operations) {
         const idx = srcResult.array.findIndex(e => e.uid === targetUid);
         const [removed] = srcResult.array.splice(idx, 1);
 
-        if (op.position === 'inside') {
+        if (op.position === 'inside' || op.position === 'inside_end') {
+          // Move to END of destination group's children
           const dest = findElementByUid(elements, destUid);
           if (dest) {
             dest.elements = dest.elements || [];
             dest.elements.push(removed);
+          }
+        } else if (op.position === 'inside_start' || op.position === 'inside_top') {
+          // Move to START of destination group's children
+          const dest = findElementByUid(elements, destUid);
+          if (dest) {
+            dest.elements = dest.elements || [];
+            dest.elements.unshift(removed);
           }
         } else {
           const destResult = findParentOf(elements, destUid);
