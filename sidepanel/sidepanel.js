@@ -558,6 +558,35 @@ function formatOperationDetails(op) {
     details.isBulk = true;
     details.bulkLabels = Array.isArray(op._labels) ? op._labels : [];
 
+  } else if (op.type === 'replace_subtree') {
+    // COMPLEX STRUCTURAL operation
+    const structureLabel = op.structure?.config?.label || op.structure?.label || 'subtree';
+    const cleanLabel = structureLabel.replace(/<[^>]*>/g, '').substring(0, 50);
+
+    // Count elements in structure
+    function countElements(el) {
+      let count = 1;
+      if (el?.elements) {
+        for (const child of el.elements) {
+          count += countElements(child);
+        }
+      }
+      return count;
+    }
+    const elementCount = op.structure ? countElements(op.structure) : 0;
+
+    if (op.position === 'replace') {
+      details.summary = `Replace: ${cleanLabel}`;
+      details.changes.push(`Replacing with structure of ${elementCount} elements`);
+    } else if (op.position === 'before') {
+      details.summary = `Insert before: ${cleanLabel}`;
+      details.changes.push(`Adding structure with ${elementCount} elements`);
+    } else {
+      details.summary = `Insert after: ${cleanLabel}`;
+      details.changes.push(`Adding structure with ${elementCount} elements`);
+    }
+    details.changes.push('All UIDs will be regenerated');
+
   } else {
     // Unknown operation type
     details.summary = `${op.type || 'Unknown'} operation`;

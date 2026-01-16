@@ -1464,6 +1464,49 @@ function applyOperations(exportData, operations) {
           el.config.text = el.config.text.replace(regex, replaceStr);
         }
       }
+
+    } else if (op.type === 'replace_subtree') {
+      // Complex structural operation - insert or replace entire subtree
+      const targetUid = op.target_uid;
+      const position = op.position || 'after';
+      let newStructure = op.structure;
+
+      if (!newStructure) {
+        console.warn('replace_subtree: no structure provided');
+        continue;
+      }
+
+      // Deep clone and regenerate all UIDs to ensure uniqueness
+      function regenerateUids(el) {
+        el.uid = generateUid();
+        if (el.elements && Array.isArray(el.elements)) {
+          el.elements.forEach(regenerateUids);
+        }
+        return el;
+      }
+
+      newStructure = regenerateUids(JSON.parse(JSON.stringify(newStructure)));
+
+      if (position === 'replace') {
+        // Replace the target element with new structure
+        const result = findParentOf(elements, targetUid);
+        if (result && result.array) {
+          const idx = result.array.findIndex(e => e.uid === targetUid);
+          if (idx !== -1) {
+            result.array.splice(idx, 1, newStructure);
+          }
+        }
+      } else {
+        // Insert before or after the target
+        const result = findParentOf(elements, targetUid);
+        if (result && result.array) {
+          const idx = result.array.findIndex(e => e.uid === targetUid);
+          if (idx !== -1) {
+            const insertIdx = position === 'before' ? idx : idx + 1;
+            result.array.splice(insertIdx, 0, newStructure);
+          }
+        }
+      }
     }
   }
 
