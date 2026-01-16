@@ -1240,9 +1240,6 @@ function replaceColorsInHtml(html, findColor, replaceColor) {
 }
 
 function applyOperations(exportData, operations) {
-  console.log('[Fluxx AI] applyOperations called with', operations?.length, 'operations');
-  console.log('[Fluxx AI] Operations:', JSON.stringify(operations, null, 2));
-
   if (!Array.isArray(operations)) {
     throw new Error('Operations must be an array');
   }
@@ -1287,7 +1284,6 @@ function applyOperations(exportData, operations) {
     }
 
     if (op.type === 'add') {
-      console.log('[Fluxx AI] Processing ADD operation:', op.element_type, op.field_type, op.field_name, 'choices:', op.choices?.length || 0);
       let newElement;
 
       if (op.element_type === 'group') {
@@ -1312,25 +1308,21 @@ function applyOperations(exportData, operations) {
         if (!existingAttr) {
           if (isSelect || isMultiSelect) {
             // Select fields use multi_value attribute type
-            console.log('[Fluxx AI] Creating select field:', op.field_name, 'multi_allowed:', isMultiSelect);
             modelAttrs.push(createModelAttribute(op.field_name, op.field_name, 'multi_value', {
               multi_allowed: isMultiSelect
             }));
 
-            // Add choices as ModelAttributeValue entries
+            // Note: ModelAttributeValue entries (choices) cannot be created via JSON import
+            // They need to be created via the Fluxx API separately
+            // Store choices info for potential API creation
             if (op.choices && Array.isArray(op.choices)) {
-              console.log('[Fluxx AI] Adding', op.choices.length, 'choices for', op.field_name);
               op.choices.forEach((choice, index) => {
                 modelAttrValues.push(createModelAttributeValue(op.field_name, choice, index + 1));
               });
-            } else {
-              console.log('[Fluxx AI] No choices array found for select field', op.field_name);
             }
           } else {
             modelAttrs.push(createModelAttribute(op.field_name, op.field_name, op.field_type || 'string'));
           }
-        } else {
-          console.log('[Fluxx AI] Field already exists:', op.field_name, '- skipping attribute creation');
         }
 
         newElement = createAttributeElement(op.field_name, op.label, {
