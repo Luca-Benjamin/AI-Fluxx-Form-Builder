@@ -420,6 +420,7 @@ function showLoadingOverlay(message = 'Applying changes...') {
         </div>
       </div>
       <div class="fluxx-ai-loading-text">${message}</div>
+      <div class="fluxx-ai-warning">⚠️ DO NOT LEAVE THIS PAGE</div>
     </div>
   `;
   document.body.appendChild(overlay);
@@ -439,6 +440,13 @@ function showLoadingOverlay(message = 'Applying changes...') {
       align-items: center;
       justify-content: center;
       z-index: 999999;
+    }
+    .fluxx-ai-warning {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #dc2626;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
     .fluxx-ai-loading-content {
       background: white;
