@@ -1317,9 +1317,12 @@ function applyOperations(exportData, operations) {
         }
 
         // Read-only change (for fields) - uses visibility.read_only_states
-        if (op.read_only !== undefined) {
+        if (op.read_only !== undefined || op.read_only_states !== undefined) {
           el.visibility = el.visibility || {};
-          if (op.read_only) {
+          if (op.read_only_states && Array.isArray(op.read_only_states)) {
+            // Specific states provided
+            el.visibility.read_only_states = op.read_only_states;
+          } else if (op.read_only) {
             // Make read-only in ALL workflow states
             el.visibility.read_only_states = [...allWorkflowStates];
           } else {
@@ -1456,6 +1459,7 @@ function applyOperations(exportData, operations) {
       const replaceStr = op.replace;
       const setRequired = op.set_required;  // true or false
       const setReadOnly = op.set_read_only;  // true or false
+      const readOnlyStates = op.read_only_states;  // array of specific states
       const setHidden = op.set_hidden;  // true or false
       const setCollapsible = op.set_collapsible;  // true or false
       const setShowInToc = op.set_show_in_toc;  // true or false
@@ -1474,11 +1478,16 @@ function applyOperations(exportData, operations) {
         }
 
         // Set read-only on multiple fields - uses visibility.read_only_states
-        if (setReadOnly !== undefined) {
+        if (setReadOnly !== undefined || readOnlyStates !== undefined) {
           el.visibility = el.visibility || {};
-          if (setReadOnly) {
+          if (readOnlyStates && Array.isArray(readOnlyStates)) {
+            // Specific states provided
+            el.visibility.read_only_states = readOnlyStates;
+          } else if (setReadOnly) {
+            // Make read-only in ALL workflow states
             el.visibility.read_only_states = [...allWorkflowStates];
           } else {
+            // Make editable - clear read_only_states
             el.visibility.read_only_states = [];
           }
         }
