@@ -1435,25 +1435,33 @@ function applyOperations(exportData, operations) {
       }
 
     } else if (op.type === 'bulk_replace') {
-      // Bulk find/replace in HTML content for multiple elements
+      // Bulk operations for multiple elements
       const uids = op.uids || [];
       const findColor = op.find_color;  // e.g., "red" - will match any red-ish color
       const replaceColor = op.replace_color;  // e.g., "blue" or "#0066CC"
       const findStr = op.find;
       const replaceStr = op.replace;
+      const setRequired = op.set_required;  // true or false
 
       for (const uid of uids) {
         const el = findElementByUid(elements, uid);
-        if (el && el.config?.text) {
-          // Color-aware replacement (matches hex, rgb, and keywords)
-          if (findColor && replaceColor) {
-            el.config.text = replaceColorsInHtml(el.config.text, findColor, replaceColor);
-          }
-          // Literal string replacement
-          else if (findStr && replaceStr) {
-            const regex = new RegExp(findStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-            el.config.text = el.config.text.replace(regex, replaceStr);
-          }
+        if (!el) continue;
+
+        el.config = el.config || {};
+
+        // Set required on multiple fields
+        if (setRequired !== undefined) {
+          el.config.required = setRequired;
+        }
+
+        // Color-aware replacement (matches hex, rgb, and keywords)
+        if (el.config.text && findColor && replaceColor) {
+          el.config.text = replaceColorsInHtml(el.config.text, findColor, replaceColor);
+        }
+        // Literal string replacement
+        else if (el.config.text && findStr && replaceStr) {
+          const regex = new RegExp(findStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+          el.config.text = el.config.text.replace(regex, replaceStr);
         }
       }
     }
