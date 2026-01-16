@@ -1240,6 +1240,9 @@ function replaceColorsInHtml(html, findColor, replaceColor) {
 }
 
 function applyOperations(exportData, operations) {
+  console.log('[Fluxx AI] applyOperations called with', operations?.length, 'operations');
+  console.log('[Fluxx AI] Operations:', JSON.stringify(operations, null, 2));
+
   if (!Array.isArray(operations)) {
     throw new Error('Operations must be an array');
   }
@@ -1284,6 +1287,7 @@ function applyOperations(exportData, operations) {
     }
 
     if (op.type === 'add') {
+      console.log('[Fluxx AI] Processing ADD operation:', op.element_type, op.field_type, op.field_name, 'choices:', op.choices?.length || 0);
       let newElement;
 
       if (op.element_type === 'group') {
