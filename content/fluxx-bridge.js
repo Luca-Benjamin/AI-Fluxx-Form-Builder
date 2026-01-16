@@ -1554,6 +1554,30 @@ function applyOperations(exportData, operations) {
 
       transformElement(cloned);
 
+      // Create ModelAttribute entries for any new field names (when suffix applied)
+      if (fieldSuffix) {
+        function collectFieldNames(el) {
+          const names = [];
+          if (el.element_type === 'attribute' && el.name) {
+            names.push(el.name);
+          }
+          if (el.elements) {
+            for (const child of el.elements) {
+              names.push(...collectFieldNames(child));
+            }
+          }
+          return names;
+        }
+
+        const newFieldNames = collectFieldNames(cloned);
+        for (const fieldName of newFieldNames) {
+          const exists = modelAttrs.find(a => a.name === fieldName);
+          if (!exists) {
+            modelAttrs.push(createModelAttribute(fieldName, fieldName, 'string'));
+          }
+        }
+      }
+
       // Insert the cloned element
       const result = findParentOf(elements, sourceUid);
       if (result && result.array) {

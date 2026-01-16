@@ -480,7 +480,7 @@ function formatOperationDetails(op) {
 
     // Label/content/required changes
     if (op.label !== undefined) details.changes.push(`Label → "${op.label}"`);
-    if (op.content !== undefined) details.changes.push(`Content → "${op.content.substring(0, 50)}${op.content.length > 50 ? '...' : ''}"`);
+    if (op.content !== undefined && typeof op.content === 'string') details.changes.push(`Content → "${op.content.substring(0, 50)}${op.content.length > 50 ? '...' : ''}"`);
     if (op.required !== undefined) details.changes.push(op.required ? 'Set required' : 'Set optional');
 
     // Config changes
