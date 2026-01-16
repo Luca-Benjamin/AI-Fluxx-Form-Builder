@@ -1310,6 +1310,11 @@ function applyOperations(exportData, operations) {
           if (el.label !== undefined) el.label = op.label;
         }
 
+        // Required change (for fields)
+        if (op.required !== undefined) {
+          el.config.required = op.required;
+        }
+
         // Text content change
         if (op.content && el.element_type === 'text') {
           el.config.text = op.content;
